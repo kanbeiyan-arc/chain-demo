@@ -1,0 +1,214 @@
+/* ---------------------------------------------------------------------------
+ * RelationBriefCard — premium "intelligence brief" aesthetic
+ *
+ * Design system summary:
+ *   • Typography:    --font-serif (entity names), --font-sans (body),
+ *                    --font-mono (labels, CTA, badge)
+ *   • Color:         monochrome neutrals (zinc) + one tactical accent (blue)
+ *   • Borders:       hairline 1px, no shadow — premium > tailwind-default
+ *   • Tabular nums:  for any numerals in the card
+ *
+ * Override any token by passing a className that wins specificity.
+ * --------------------------------------------------------------------------- */
+
+.card {
+  width: 100%;
+  max-width: 440px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  color: #18181b;
+  font-family: var(
+    --font-sans,
+    'DM Sans',
+    system-ui,
+    -apple-system,
+    sans-serif
+  );
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Header ── */
+
+.header {
+  padding: 14px 22px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.badge {
+  font-family: var(--font-mono, 'JetBrains Mono', ui-monospace, monospace);
+  font-size: 9px;
+  font-weight: 700;
+  padding: 3px 7px;
+  border-radius: 3px;
+  letter-spacing: 0.12em;
+}
+
+.badgeDirect {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.badgeIndirect {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+/* ── Dividers ── */
+
+.divider {
+  height: 1px;
+  background: #f4f4f5;
+}
+
+/* ── Entity pair ── */
+
+.entities {
+  padding: 26px 22px;
+}
+
+.entity {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.entityNamePrimary {
+  font-family: var(
+    --font-serif,
+    'Instrument Serif',
+    'Cormorant Garamond',
+    Georgia,
+    serif
+  );
+  font-size: 30px;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  color: #09090b;
+  font-weight: 400;
+  margin: 0;
+  /* Allow CJK and long Latin names to wrap gracefully */
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.entityNameSecondary {
+  font-size: 13px;
+  color: #71717a;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.relationIndicator {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 0;
+}
+
+.relationLine {
+  flex: 1;
+  height: 1px;
+  background: #f4f4f5;
+}
+
+.relationGlyph {
+  font-size: 14px;
+  color: #a1a1aa;
+  line-height: 1;
+  font-weight: 400;
+}
+
+/* ── Sections (Description, Languages) ── */
+
+.section {
+  padding: 18px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.label {
+  font-family: var(--font-mono, 'JetBrains Mono', ui-monospace, monospace);
+  font-size: 10px;
+  color: #a1a1aa;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.body {
+  font-size: 13px;
+  line-height: 1.65;
+  color: #3f3f46;
+  margin: 0;
+}
+
+.languageList {
+  font-size: 14px;
+  color: #18181b;
+  letter-spacing: 0.01em;
+  margin: 0;
+}
+
+/* ── CTA ── */
+
+.footer {
+  padding: 12px 22px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.cta {
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 4px 0;
+  font-family: var(--font-mono, 'JetBrains Mono', ui-monospace, monospace);
+  font-size: 11px;
+  font-weight: 500;
+  color: #3b82f6;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: color 150ms ease;
+}
+
+.cta:hover {
+  color: #1d4ed8;
+}
+
+.cta:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 4px;
+  border-radius: 2px;
+}
+
+.cta:active {
+  color: #1e40af;
+}
+
+/* ── Subtle mount animation ────────────────────────────────────────────────
+ * If the parent uses `key={relation.id}` to remount the card on every
+ * cycle, this gives a gentle fade-in each time. Skipped when the user
+ * prefers reduced motion.
+ * ──────────────────────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: no-preference) {
+  .card {
+    animation: cardFadeIn 240ms ease-out;
+  }
+}
+
+@keyframes cardFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
