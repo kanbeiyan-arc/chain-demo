@@ -1,7 +1,7 @@
 name: Mirror to org repo
 
 # Mirrors every push on this (personal) repo to the organization repo
-# Chainreactions-ca/chain-demo. Runs on GitHub's infrastructure using the
+# Chainreactions-ca/chainr-demo. Runs on GitHub's infrastructure using the
 # ORG_MIRROR_TOKEN secret (a PAT with Contents:write on the org repo).
 
 on:
@@ -24,10 +24,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Push ref to Chainreactions-ca/chain-demo
+      - name: Push ref to Chainreactions-ca/chainr-demo
         env:
           TOKEN: ${{ secrets.ORG_MIRROR_TOKEN }}
         run: |
           git push --force \
-            "https://x-access-token:${TOKEN}@github.com/Chainreactions-ca/chain-demo.git" \
+            "https://x-access-token:${TOKEN}@github.com/Chainreactions-ca/chainr-demo.git" \
             "HEAD:${GITHUB_REF}"
