@@ -39,7 +39,7 @@ export function RelationBriefCard({
   const ANALYSIS_DIMENSIONS = 8;
   const description = `${relation.source.name} and ${relation.target.name} have a ${relation.type.toLowerCase()} relationship${
     relation.detail ? ` — ${relation.detail}` : ''
-  }. Synthesized from cross-lingual OSINT sources…`;
+  }.`;
 
   const languages = relation.sourceLanguages ?? [];
 

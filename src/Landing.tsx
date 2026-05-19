@@ -7,8 +7,12 @@ import {
 } from './components/EntityGlobe';
 import {
   EntityCountryGlobe,
+  EntityBriefCard,
   sampleEntries,
+  useStaggeredReveal,
+  LINK_SETTLE_MS,
 } from './components/EntityCountryGlobe';
+import type { LinkedEntry } from './components/EntityCountryGlobe';
 import { BackgroundGlobe } from './components/BackgroundGlobe';
 
 // ---------------------------------------------------------------------------
@@ -143,6 +147,10 @@ export function Landing() {
         @keyframes revealUp {
           from { opacity: 0; transform: translateY(44px); }
           to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes livePulse {
+          0%, 100% { opacity: 1; }
+          50%      { opacity: 0.3; }
         }
         * { box-sizing: border-box; }
         html { scroll-behavior: smooth; }
@@ -280,6 +288,73 @@ function Nav() {
   );
 }
 
+// ─── Live / Freeze mode toggle (sits above a globe) ─────────────────────────
+// Live = the view auto-cycles; Freeze = hold the current frame.
+
+// One capsule that toggles on click: Live (green dot, background-coloured
+// base) ⇄ Freeze (filled, dark).
+function ModeToggle({
+  paused,
+  onChange,
+  style,
+}: {
+  paused: boolean;
+  onChange: (paused: boolean) => void;
+  style?: React.CSSProperties;
+}) {
+  const live = !paused;
+  return (
+    <button
+      type="button"
+      aria-pressed={paused}
+      title={live ? 'Live — click to freeze' : 'Frozen — click to go live'}
+      onClick={() => onChange(!paused)}
+      style={{
+        appearance: 'none',
+        cursor: 'pointer',
+        font: 'inherit',
+        fontSize: 12,
+        fontWeight: 600,
+        letterSpacing: '0.04em',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 8,
+        padding: '7px 16px',
+        borderRadius: 999,
+        // Live: base = the page background (blends in). Freeze: filled dark.
+        background: live ? '#ffffff' : '#0f172a',
+        color: live ? '#475569' : '#ffffff',
+        border: `1px solid ${live ? '#e2e8f0' : '#0f172a'}`,
+        boxShadow: live ? 'none' : '0 8px 22px -14px rgba(15, 23, 42, 0.5)',
+        pointerEvents: 'auto',
+        transition:
+          'background 160ms ease, color 160ms ease, border-color 160ms ease',
+        ...style,
+      }}
+    >
+      {live ? (
+        <>
+          <span
+            style={{
+              width: 7,
+              height: 7,
+              borderRadius: '50%',
+              background: '#22c55e',
+              animation: 'livePulse 1.6s ease-in-out infinite',
+            }}
+          />
+          Live
+        </>
+      ) : (
+        <>
+          <span style={{ fontSize: 10, letterSpacing: 0 }}>❚❚</span>
+          Freeze
+        </>
+      )}
+    </button>
+  );
+}
+
 // ─── Hero (scroll-pinned) ───────────────────────────────────────────────────
 
 function Hero() {
@@ -287,13 +362,15 @@ function Hero() {
   const progress = useScrollProgress(sectionRef);
 
   const [i, setI] = useState(0);
+  const [paused, setPaused] = useState(false);
   useEffect(() => {
+    if (paused) return;
     const t = setInterval(
       () => setI((p) => (p + 1) % sampleRelations.length),
       CYCLE_MS,
     );
     return () => clearInterval(t);
-  }, []);
+  }, [paused]);
   const shown = sampleRelations[i];
 
   // Click the scroll hint -> glide to the Entity Relations sweet spot.
@@ -410,13 +487,28 @@ function Hero() {
               entities={sampleEntityList}
               relations={[shown]}
               height={560}
-              autoRotate
+              autoRotate={!paused}
               rotateSpeed={0.26}
               highlightedRelationId={shown.id}
               initialPOV={{ lat: 22, lng: 8, altitude: 1.9 }}
               style={{ background: 'transparent' }}
             />
           </div>
+        </div>
+
+        {/* live / freeze toggle — above the globe, appears with the view */}
+        <div
+          style={{
+            position: 'absolute',
+            top: 'calc(50% - 290px)',
+            left: '50%',
+            transform: 'translate(-50%, -100%)',
+            opacity: capIn,
+            pointerEvents: capIn > 0.6 ? 'auto' : 'none',
+            zIndex: 3,
+          }}
+        >
+          <ModeToggle paused={paused} onChange={setPaused} />
         </div>
 
         {/* intro overlay — scrolls up and fades */}
@@ -520,8 +612,7 @@ function Hero() {
               letterSpacing: '-0.01em',
             }}
           >
-            Name any two entities — we surface the relationship between them,
-            graded and sourced across every language.
+            Name any two entities — we surface the relationship between them.
           </p>
         </div>
 
@@ -632,6 +723,29 @@ function Hero() {
 
 function CountryReach() {
   const [ref, inView] = useInView<HTMLElement>(0.12);
+  const [active, setActive] = useState<LinkedEntry>(sampleEntries[0]);
+  const [paused, setPaused] = useState(false);
+
+  // Keywords surface one after another: Military first, then Weapons 2s
+  // later — and they STAY (not alternating). Each newly surfaced keyword's
+  // icon pops onto the globe in sync (military → soldier, weapons → rifle).
+  // Resets when the entity changes; holds while frozen.
+  // Keywords emerge one-by-one (Military, then Weapons 2s later) and stay;
+  // the card fades in first, so the first keyword waits ~0.8s. Resets per
+  // entity, holds while frozen. Each newly shown keyword's icon also pops
+  // onto the globe in sync (military → soldier, weapons → rifle).
+  const keywords = active.origin.brief?.keywords ?? [];
+  // For a linked entry the camera first sweeps to the searched country —
+  // only after it settles there do we wait 1s, then surface Military, then
+  // 2s later Sanctions. A normal entry just waits 2s after it switches.
+  const revealed = useStaggeredReveal(keywords.length, active, {
+    paused,
+    firstDelayMs: active.link ? LINK_SETTLE_MS + 1000 : 2000,
+  });
+  const visibleKeywordIcons = keywords
+    .slice(0, revealed)
+    .map((k) => k.icon);
+
   const reveal = (delay: number) =>
     inView
       ? {
@@ -639,38 +753,119 @@ function CountryReach() {
         }
       : { opacity: 0 };
 
+  // Mirror the Hero "Entity Relations" composition exactly: a full-bleed
+  // stage with the globe centered, the section title absolute top-left,
+  // and the brief card absolute right-center — so this card lands in the
+  // same place as the Entity Relations card.
+  const STAGE_H = 620;
+
   return (
     <section
       ref={ref}
       style={{
         background: '#fff',
-        padding: 'clamp(72px, 10vw, 128px) clamp(20px, 5vw, 64px)',
+        padding: 'clamp(72px, 10vw, 128px) 0',
       }}
     >
-      <div style={{ maxWidth: 1040, margin: '0 auto' }}>
-        <h2
+      {/* live / freeze toggle — in normal flow, ABOVE the globe stage so
+          it always clears the globe disc (the stage height equals the
+          globe height, leaving no room for an overlaid control) */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          marginBottom: 36,
+          ...reveal(0.2),
+        }}
+      >
+        <ModeToggle paused={paused} onChange={setPaused} />
+      </div>
+
+      <div
+        id="entity-search-globe"
+        style={{
+          position: 'relative',
+          height: STAGE_H,
+          ...reveal(0.15),
+        }}
+      >
+        {/* section title — top-left, matches Entity Relations */}
+        <div
           style={{
-            margin: '0 0 24px',
-            fontSize: 13,
-            fontWeight: 700,
-            letterSpacing: '0.18em',
-            textTransform: 'uppercase',
-            color: BLUE,
+            position: 'absolute',
+            top: 'clamp(0px, 4vh, 48px)',
+            left: 'clamp(20px, 5vw, 64px)',
+            pointerEvents: 'none',
+            maxWidth: 340,
+            zIndex: 2,
             ...reveal(0),
           }}
         >
-          Entity Search
-        </h2>
+          <div
+            style={{
+              fontSize: 13,
+              fontWeight: 700,
+              letterSpacing: '0.18em',
+              textTransform: 'uppercase',
+              color: BLUE,
+            }}
+          >
+            Entity Search
+          </div>
+          <p
+            style={{
+              margin: '14px 0 0',
+              fontSize: 17,
+              lineHeight: 1.5,
+              fontWeight: 400,
+              color: '#475569',
+              letterSpacing: '-0.01em',
+            }}
+          >
+            Name any entity — we surface its profile and risk exposure.
+          </p>
+        </div>
 
+        {/* globe — centered, same sizing as the Hero globe */}
         <div
-          id="entity-search-globe"
-          style={{ pointerEvents: 'none', ...reveal(0.15) }}
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            width: 'min(620px, 78vw)',
+            transform: 'translate(-50%, -50%)',
+            pointerEvents: 'none',
+          }}
         >
           <EntityCountryGlobe
             entries={sampleEntries}
-            height={620}
-            cycleMs={5000}
+            height={STAGE_H}
+            cycleMs={6000}
             style={{ background: 'transparent' }}
+            onActiveChange={setActive}
+            visibleKeywordIcons={visibleKeywordIcons}
+            paused={paused}
+          />
+        </div>
+
+        {/* entity brief — right-center, identical placement to the
+            Entity Relations brief card */}
+        <div
+          style={{
+            position: 'absolute',
+            top: '50%',
+            right: 'clamp(20px, 5vw, 64px)',
+            width: 340,
+            maxWidth: '32vw',
+            transform: 'translateY(-50%)',
+            zIndex: 2,
+          }}
+        >
+          <EntityBriefCard
+            key={active.origin.id}
+            entity={active.origin}
+            revealedKeywordCount={revealed}
+            inCountry={active.country}
           />
         </div>
       </div>
